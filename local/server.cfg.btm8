@@ -1,0 +1,5 @@
+zmq_port = 12336
+kafka_broker =
+kafka_options =
+kafka_debugging = true
+folder_19110003 = tests/1911.000R3_BLUETOOTH_M8_MODUL-0.0.1

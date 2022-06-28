@@ -1,0 +1,2 @@
+#! /bin/bash
+./build_artifact.py ubuntu 22.04 arm64
