@@ -41,9 +41,9 @@ function Process:run_process(strCommand, astrArguments, strWorkingFolder)
     local tPipeStdOut = uv.pipe(false)
     local tPipeStdErr = uv.pipe(false)
 
-tLog.alert('strCommand: %s', strCommand)
-tLog.alert('astrArguments: %s', table.concat(astrArguments, ','))
-tLog.alert('strWorkingFolder: %s', strWorkingFolder)
+    tLog.debug('strCommand: %s', strCommand)
+    tLog.debug('astrArguments: %s', table.concat(astrArguments, ','))
+    tLog.debug('strWorkingFolder: %s', strWorkingFolder)
 
     -- Start a new process.
     local tProc = uv.spawn(
