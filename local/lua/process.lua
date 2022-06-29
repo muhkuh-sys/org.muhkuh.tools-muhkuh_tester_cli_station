@@ -126,8 +126,9 @@ function Process:_onTerminate(tHandle, err, exit_status, term_signal)
 end
 
 
-
-function Process:onClose(strError, iExitStatus, uiTermSignal)
+-- Arguments of the function are:
+-- strError, iExitStatus, uiTermSignal
+function Process.onClose()
   -- Do nothing by default.
 end
 
@@ -164,14 +165,16 @@ function Process:_onStdErr(tHandle, strError, strData)
 end
 
 
-
-function Process:onStdOut(strData)
+-- Arguments of the function are:
+-- strData
+function Process.onStdOut()
   -- Do nothing by default.
 end
 
 
-
-function Process:onStdErr(strData)
+-- Arguments of the function are:
+-- strData
+function Process.onStdErr()
   -- Do nothing by default.
 end
 

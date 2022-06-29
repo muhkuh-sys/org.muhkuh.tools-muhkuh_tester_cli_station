@@ -1,5 +1,4 @@
 local t = ...
-local strDistId = t:get_platform()
 
 -- Copy all additional files.
 t:install{

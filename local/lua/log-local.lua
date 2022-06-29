@@ -67,12 +67,14 @@ end
 
 
 
-function LogLocal:onEvent()
+function LogLocal.onEvent()
 end
 
 
 
-function LogLocal:onTestStepStarted(uiStepIndex, strTestCaseId, strTestCaseName, atLogAttributes)
+-- Arguments of the function are:
+-- uiStepIndex, strTestCaseId, strTestCaseName, atLogAttributes
+function LogLocal.onTestStepStarted()
 end
 
 
@@ -90,14 +92,16 @@ end
 
 
 
-function LogLocal:onTestRunStarted(atLogAttributes)
+-- Arguments of the function are:
+-- atLogAttributes
+function LogLocal:onTestRunStarted()
   -- Initialize the test state.
   self.m_tTestRunState = self.TESTRUNSTATE_Unknown
 end
 
 
 
-function LogLocal:onTestRunFinished()
+function LogLocal.onTestRunFinished()
 end
 
 

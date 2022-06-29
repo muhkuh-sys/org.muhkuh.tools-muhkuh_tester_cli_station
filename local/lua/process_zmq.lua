@@ -54,17 +54,19 @@ function ProcessZmq:__zmq_init()
   end
   self.m_zmqContext = tZContext
 
-  local tZSocket, strError = tZContext:socket(zmq.PAIR)
+  local tZSocket
+  tZSocket, strError = tZContext:socket(zmq.PAIR)
   if tZSocket==nil then
     error('Failed to create ZMQ socket: ' .. tostring(strError))
   end
   self.m_zmqSocket = tZSocket
 
-  local tServerPort, strError = tZSocket:bind_to_random_port('tcp://127.0.0.1')
+  local tServerPort
+  tServerPort, strError = tZSocket:bind_to_random_port('tcp://127.0.0.1')
   if tServerPort==nil then
     error('Failed to bind the socket: ' .. tostring(strError))
   end
-  strServerAddress = string.format('tcp://127.0.0.1:%d', tServerPort)
+  local strServerAddress = string.format('tcp://127.0.0.1:%d', tServerPort)
   self.tLog.debug('Local 0MQ listening on %s', strServerAddress)
   self.m_zmqPort = tServerPort
   self.m_zmqServerAddress = strServerAddress
@@ -80,7 +82,7 @@ end
 
 
 
-function ProcessZmq:__onZmqReceiveLog(tHandle, strMessage)
+function ProcessZmq:__onZmqReceiveLog(strMessage)
   local strLogLevel, strLogMessage = string.match(strMessage, '^LOG(%d+),(.*)')
   if strLogLevel~=nil and strLogMessage~=nil then
     -- Add a newline if it is not already there.
@@ -105,49 +107,49 @@ end
 
 
 
-function ProcessZmq:__onZmqReceiveInt(tHandle, strMessage)
+function ProcessZmq.__onZmqReceiveInt()
   print('warning: discarding interaction.')
 end
 
 
 
-function ProcessZmq:__onZmqReceiveIda(tHandle, strMessage)
+function ProcessZmq.__onZmqReceiveIda()
   print('warning: discarding interaction data.')
 end
 
 
 
-function ProcessZmq:__onZmqReceiveTtl(tHandle, strMessage)
+function ProcessZmq.__onZmqReceiveTtl()
   print('warning: discarding title.')
 end
 
 
 
-function ProcessZmq:__onZmqReceiveSer(tHandle, strMessage)
+function ProcessZmq.__onZmqReceiveSer()
   print('warning: discarding serial.')
 end
 
 
 
-function ProcessZmq:__onZmqReceiveNam(tHandle, strMessage)
+function ProcessZmq.__onZmqReceiveNam()
   print('warning: discarding test names.')
 end
 
 
 
-function ProcessZmq:__onZmqReceiveSta(tHandle, strMessage)
+function ProcessZmq.__onZmqReceiveSta()
   print('warning: discarding test stati.')
 end
 
 
 
-function ProcessZmq:__onZmqReceiveCur(tHandle, strMessage)
+function ProcessZmq.__onZmqReceiveCur()
   print('warning: dicarding current serial.')
 end
 
 
 
-function ProcessZmq:__onZmqReceiveTss(tHandle, strMessage)
+function ProcessZmq:__onZmqReceiveTss(strMessage)
   local tLog = self.tLog
   local strResponseRaw = string.match(strMessage, '^TSS(.*)')
   local tJson, uiPos, strJsonErr = self.json.decode(strResponseRaw)
@@ -168,7 +170,7 @@ end
 
 
 
-function ProcessZmq:__onZmqReceiveTsf(tHandle, strMessage)
+function ProcessZmq:__onZmqReceiveTsf(strMessage)
   local tLog = self.tLog
   local strResponseRaw = string.match(strMessage, '^TSF(.*)')
   local tJson, uiPos, strJsonErr = self.json.decode(strResponseRaw)
@@ -186,7 +188,7 @@ end
 
 
 
-function ProcessZmq:__onZmqReceiveTds(tHandle, strMessage)
+function ProcessZmq:__onZmqReceiveTds(strMessage)
   local tLog = self.tLog
   local strResponseRaw = string.match(strMessage, '^TDS(.*)')
   local tJson, uiPos, strJsonErr = self.json.decode(strResponseRaw)
@@ -204,7 +206,7 @@ end
 
 
 
-function ProcessZmq:__onZmqReceiveTdf(tHandle, strMessage)
+function ProcessZmq:__onZmqReceiveTdf()
   -- Send all log consumer a test device finished event.
   for _, tLogConsumer in ipairs(self.m_logConsumer) do
     tLogConsumer:onTestRunFinished()
@@ -213,7 +215,7 @@ end
 
 
 
-function ProcessZmq:__onZmqReceiveLev(tHandle, strMessage)
+function ProcessZmq:__onZmqReceiveLev(strMessage)
   local tLog = self.tLog
   local strResponseRaw = string.match(strMessage, '^LEV(.*)')
   local tJson, uiPos, strJsonErr = self.json.decode(strResponseRaw)
@@ -245,7 +247,7 @@ function ProcessZmq:__onZmqReceive(tHandle, strErr, tSocket)
       print('**** ZMQ received unknown message:', strMessage)
     else
       -- Call the handler.
-      fnHandler(self, tHandle, strMessage)
+      fnHandler(self, strMessage)
     end
   end
 end
@@ -348,7 +350,8 @@ function ProcessZmq:onCancel()
   local tLog = self.tLog
 
   tLog.info('Cancel: stop the running test.')
-  -- TODO: this kills only the process, which is the LUA test. Any subprocesses started by the LUA test will keep running.
+  -- TODO: this kills only the process, which is the LUA test.
+  --       Any subprocesses started by the LUA test will keep running.
   self:shutdown()
 end
 
