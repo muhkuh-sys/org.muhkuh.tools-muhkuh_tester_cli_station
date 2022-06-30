@@ -16,8 +16,8 @@ function TestController:_init(tLog, tLogTest, tLogKafka, tLogLocal, atTestFolder
   self.ucI2CAddr_Out = 32
   self.ucI2CAddr_In = 56
 
-  -- Poll the insert signal every 500ms.
-  self.uiPollInsertInterval = 500
+  -- Poll the insert signal every 250ms.
+  self.uiPollInsertInterval = 250
 
   -- The bit values for the input signals.
   self.I2C_Input = {
@@ -32,6 +32,7 @@ function TestController:_init(tLog, tLogTest, tLogKafka, tLogLocal, atTestFolder
     TEST_RESULT_ERROR  = 0x10,
     ACTIVATE_DUT_POWER = 0x80
   }
+  self.tLastTestResult = nil
 
   self.m_testProcess = nil
 
@@ -48,7 +49,8 @@ function TestController:_init(tLog, tLogTest, tLogKafka, tLogLocal, atTestFolder
   self.STATE_IDLE = 0
   self.STATE_RUNNING = 1
   self.STATE_FINISHED = 2
-  self.STATE_ERROR = 3
+  self.STATE_DUT_REMOVED = 3
+  self.STATE_ERROR = 4
   self.m_tState = self.STATE_IDLE
 end
 
@@ -174,10 +176,16 @@ function TestController:onPollSwitchTimer(tTimer)
 
   self.tI2c:transfer(self.ucI2CAddr_In, tMsgR)
   local ucData = tMsgR[1][1] ~ 0xff
+  -- A DUT is inserted if the "INSERT" bit is set.
+  local fIsInserted = ((ucData & self.I2C_Input.INSERT)~=0)
+
   local tState = self.m_tState
   if tState==self.STATE_IDLE then
     -- The station is idle. If a module is inserted, start a new test.
-    if (ucData & self.I2C_Input.INSERT)~=0 then
+    if fIsInserted==true then
+      -- Clear the last test result.
+      self.tLastTestResult = nil
+
       -- Set the state to "running" and turn on DUT power.
       self.m_tState = self.STATE_RUNNING
       self:setState{'TEST_RUNNING', 'ACTIVATE_DUT_POWER'}
@@ -196,11 +204,21 @@ function TestController:onPollSwitchTimer(tTimer)
         self:setState('STATION_ERROR')
       end
     end
+
+  elseif tState==self.STATE_RUNNING then
+    -- If the test is running and the module is removed, cancel the test.
+    if fIsInserted~=true then
+      self.m_tState = self.STATE_DUT_REMOVED
+      -- Switch off the power, the test will finish soon.
+      -- NOTE: Do not show an error yet, stay in the "running" state until the test terminates.
+      self:setState('TEST_RUNNING')
+    end
+
   elseif tState==self.STATE_FINISHED then
     -- If the test is finished and the module is removed, return to "idle" state.
-    if (ucData & self.I2C_Input.INSERT)==0 then
+    if fIsInserted~=true then
       self.m_tState = self.STATE_IDLE
-      self:setState('STATION_READY')
+      self:setState{'STATION_READY', self.tLastTestResult}
     end
   end
 
@@ -274,14 +292,35 @@ function TestController:onTestTerminate()
 
   tLog.info('onTestTerminate')
 
+  -- The process has terminated.
+  self.m_testProcess = nil
+
+  local tTestResult
+  local tState = self.m_tState
+  -- Did the tester process terminate in "STATE_RUNNING"?
+  -- -> This is a normal termination of the test.
+  if tState==self.STATE_RUNNING then
+    -- Get the test result.
+    tTestResult = tLogLocal:getResult()
+
+  -- Did the tester process terminate in "STATE_DUT_REMOVED"?
+  -- -> The DUT was removed before the test finished. The DUT power was switched off as a result.
+  elseif tState==self.STATE_DUT_REMOVED then
+    -- A removed DUT always results in an error.
+    tTestResult = false
+  end
+
   -- The test is not running anymore.
   self.m_tState = self.STATE_FINISHED
-  local tTestResult = tLogLocal:getResult()
+
+  local strState
   if tTestResult==true then
-    self:setState('TEST_RESULT_OK')
+    strState = 'TEST_RESULT_OK'
   else
-    self:setState('TEST_RESULT_ERROR')
+    strState = 'TEST_RESULT_ERROR'
   end
+  self:setState(strState)
+  self.tLastTestResult = strState
 
   -- Run a complete garbage collection.
   collectgarbage('collect')
